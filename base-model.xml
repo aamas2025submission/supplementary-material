@@ -1,0 +1,581 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+/**
+ * NV - number of Voters,
+ * NC - number of Candidates,
+ * RV &lt;int[0,1]&gt; - allow Re-Voting,
+ * OBEY &lt;int[-1,NC]&gt; - obey condition (-1 stands for abstain, 0 for invalid vote),
+ * DISOBEY &lt;int[-1,NC]&gt; - obey condition,
+ * CTYPE=1 will punish only when DISOBEYed,
+ * CTYPE=2 will reward only when OBEYed,
+ * In particular we can represent:  
+ *    - (strong) abstention attack by CTYPE=2 and OBEY=-1, 
+ *    - (weak) abstention attack by CTYPE=2 and OBEY=0, 
+ *    - coercion-resistance by CTYPE=1 and DISOBEY=*
+ */
+
+const int NV = 2;
+const int NC = 2;
+
+const int CTYPE = 2; 
+// 
+
+const int OBEY = -1;
+const int DISOBEY = -1;
+
+const int RV = 1;
+
+//
+const int mail = 1;
+const int inet = 2;
+const int poll = 3;
+
+chan reg[4];
+chan pack[4];
+chan vote[4];
+
+clock x,y,t;
+
+chan pun,npun;
+chan show[NC+2];
+
+int[-1,NC] sh;
+int[-1,NC] prev;
+
+
+
+</declaration>
+	<template>
+		<name x="5" y="5">Voter</name>
+		<parameter>int[1,NV] id</parameter>
+		<declaration>// Place local declarations here.
+
+int[0,3] mode;
+int[-1,NC] voted = -1;
+
+int[0,1] p,np;</declaration>
+		<location id="id0" x="-102" y="-170">
+		</location>
+		<location id="id1" x="-102" y="-34">
+		</location>
+		<location id="id2" x="-102" y="204">
+		</location>
+		<location id="id3" x="-102" y="68">
+		</location>
+		<location id="id4" x="-204" y="272">
+		</location>
+		<location id="id5" x="-204" y="408">
+		</location>
+		<location id="id6" x="-102" y="476">
+			<name x="-110" y="493">end</name>
+		</location>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-25" y="25">t&gt;10</label>
+			<label kind="assignment" x="-25" y="42">p=p+(!np &amp;&amp; !p)</label>
+			<nail x="85" y="68"/>
+			<nail x="85" y="476"/>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id6"/>
+			<label kind="assignment" x="-204" y="433">p=p+(!np &amp;&amp; !p)</label>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id5"/>
+			<nail x="51" y="306"/>
+			<nail x="-102" y="408"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-8" y="119">voted==-1</label>
+			<nail x="0" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-306" y="297">npun?</label>
+			<label kind="assignment" x="-306" y="314">np=1</label>
+			<nail x="-306" y="340"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="synchronisation" x="-136" y="297">pun?</label>
+			<label kind="assignment" x="-136" y="314">p=1</label>
+			<nail x="-102" y="340"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-272" y="212">!p &amp;&amp; !np</label>
+			<label kind="synchronisation" x="-272" y="229">show[(voted==-1)*(NC+1)+(voted!=-1)*voted]!</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id2"/>
+			<label kind="select" x="-272" y="76">vi: int[0,NC]</label>
+			<label kind="synchronisation" x="-272" y="93">vote[mode]!</label>
+			<label kind="assignment" x="-272" y="110">prev=voted,
+voted=vi,
+sh=voted</label>
+			<nail x="-204" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-340" y="416">RV &amp;&amp;
+t&lt;=10</label>
+			<nail x="-340" y="408"/>
+			<nail x="-340" y="-170"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id3"/>
+			<label kind="synchronisation" x="-136" y="0">pack[mode]?</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-8" y="-136">reg[poll]!</label>
+			<label kind="assignment" x="-8" y="-119">mode=poll</label>
+			<nail x="0" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-272" y="-136">reg[mail]!</label>
+			<label kind="assignment" x="-272" y="-119">mode=mail</label>
+			<nail x="-204" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-136" y="-136">reg[inet]!</label>
+			<label kind="assignment" x="-136" y="-119">mode=inet</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">Voter_</name>
+		<parameter>int[2,NV] id</parameter>
+		<declaration>// Place local declarations here.
+
+int[0,3] mode;
+int[-1,NC] voted = -1;
+
+int[0,1] p,np;</declaration>
+		<location id="id7" x="-102" y="-170">
+		</location>
+		<location id="id8" x="-102" y="-34">
+		</location>
+		<location id="id9" x="-102" y="204">
+		</location>
+		<location id="id10" x="-102" y="68">
+		</location>
+		<location id="id11" x="-204" y="272">
+		</location>
+		<location id="id12" x="-204" y="408">
+		</location>
+		<location id="id13" x="-102" y="476">
+			<name x="-110" y="493">end</name>
+		</location>
+		<init ref="id7"/>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-25" y="25">t&gt;10</label>
+			<label kind="assignment" x="-25" y="42">p=p+(!np &amp;&amp; !p)</label>
+			<nail x="85" y="68"/>
+			<nail x="85" y="476"/>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id13"/>
+			<label kind="assignment" x="-204" y="433">p=p+(!np &amp;&amp; !p)</label>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id12"/>
+			<nail x="51" y="306"/>
+			<nail x="-102" y="408"/>
+		</transition>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id9"/>
+			<label kind="guard" x="-8" y="119">voted==-1</label>
+			<nail x="0" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id12"/>
+			<label kind="synchronisation" x="-306" y="297">npun?</label>
+			<label kind="assignment" x="-306" y="314">np=1</label>
+			<nail x="-306" y="340"/>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id12"/>
+			<label kind="synchronisation" x="-136" y="297">pun?</label>
+			<label kind="assignment" x="-136" y="314">p=1</label>
+			<nail x="-102" y="340"/>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id11"/>
+			<label kind="guard" x="-272" y="212">!p &amp;&amp; !np</label>
+			<label kind="synchronisation" x="-272" y="229">show[(voted!=-1) ? voted : NC+1]!</label>
+		</transition>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id9"/>
+			<label kind="select" x="-272" y="76">vi: int[0,NC]</label>
+			<label kind="synchronisation" x="-272" y="93">vote[mode]!</label>
+			<label kind="assignment" x="-272" y="110">prev=voted,
+voted=vi,
+sh=voted</label>
+			<nail x="-204" y="136"/>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-340" y="416">RV &amp;&amp;
+t&lt;=10</label>
+			<nail x="-340" y="408"/>
+			<nail x="-340" y="-170"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-136" y="0">pack[mode]?</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-8" y="-136">reg[poll]!</label>
+			<label kind="assignment" x="-8" y="-119">mode=poll</label>
+			<nail x="0" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-272" y="-136">reg[mail]!</label>
+			<label kind="assignment" x="-272" y="-119">mode=mail</label>
+			<nail x="-204" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-136" y="-136">reg[inet]!</label>
+			<label kind="assignment" x="-136" y="-119">mode=inet</label>
+		</transition>
+	</template>
+	<template>
+		<name>Authority</name>
+		<declaration>int[0,NV+1] freq;
+
+int[-NV-1,NV+1] tally[NC+1];</declaration>
+		<location id="id14" x="0" y="0">
+			<label kind="invariant" x="-10" y="17">t&lt;=11</label>
+		</location>
+		<location id="id15" x="0" y="-136">
+			<label kind="invariant" x="-10" y="-119">x&lt;=0</label>
+		</location>
+		<location id="id16" x="-136" y="-68">
+			<label kind="invariant" x="-146" y="-51">x&lt;=0</label>
+		</location>
+		<location id="id17" x="136" y="-68">
+			<label kind="invariant" x="126" y="-51">x&lt;=0</label>
+		</location>
+		<location id="id18" x="0" y="136">
+			<name x="-25" y="153">closed</name>
+		</location>
+		<init ref="id14"/>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id14"/>
+			<label kind="guard" x="136" y="8">1&lt;=t &amp;&amp; t&lt;=7</label>
+			<label kind="synchronisation" x="136" y="25">vote[mail]?</label>
+			<label kind="assignment" x="136" y="42">freq=freq + (prev==-1),
+prev=(prev!=-1)*prev,
+tally[prev]=tally[prev]-1,
+prev=0,
+tally[sh]=tally[sh]+1,
+sh=0,
+tally[0]=0</label>
+			<nail x="136" y="34"/>
+			<nail x="102" y="68"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id14"/>
+			<label kind="guard" x="34" y="68">6&lt;=t &amp;&amp; t&lt;=9</label>
+			<label kind="synchronisation" x="34" y="85">vote[inet]?</label>
+			<label kind="assignment" x="34" y="102">freq=freq + (prev==-1),
+prev=(prev!=-1)*prev,
+tally[prev]=tally[prev]-1,
+prev=0,
+tally[sh]=tally[sh]+1,
+sh=0,
+tally[0]=0</label>
+			<nail x="68" y="34"/>
+			<nail x="34" y="68"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id14"/>
+			<label kind="guard" x="-178" y="51">10&lt;=t &amp;&amp; t&lt;=11</label>
+			<label kind="synchronisation" x="-178" y="68">vote[poll]?</label>
+			<label kind="assignment" x="-178" y="85">freq=freq + (prev==-1),
+prev=(prev!=-1)*prev,
+tally[prev]=tally[prev]-1,
+prev=0,
+tally[sh]=tally[sh]+1,
+sh=0,
+tally[0]=0</label>
+			<nail x="-34" y="68"/>
+			<nail x="-68" y="34"/>
+		</transition>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="-119" y="-68">pack[mail]!</label>
+			<nail x="-68" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id16"/>
+			<label kind="guard" x="-178" y="-17">t&lt;=1</label>
+			<label kind="synchronisation" x="-178" y="0">reg[mail]?</label>
+			<label kind="assignment" x="-178" y="17">x=0</label>
+			<nail x="-102" y="0"/>
+		</transition>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="34" y="-17">pack[poll]!</label>
+			<nail x="102" y="0"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id17"/>
+			<label kind="guard" x="42" y="-102">t&lt;=10</label>
+			<label kind="synchronisation" x="43" y="-85">reg[poll]?</label>
+			<label kind="assignment" x="43" y="-68">x=0</label>
+			<nail x="68" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id15"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="17" y="-136">pack[inet]!</label>
+			<nail x="34" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id15"/>
+			<label kind="guard" x="-85" y="-144">t&lt;=6</label>
+			<label kind="synchronisation" x="-85" y="-127">reg[inet]?</label>
+			<label kind="assignment" x="-85" y="-110">x=0</label>
+			<nail x="-34" y="-68"/>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id18"/>
+			<label kind="guard" x="-17" y="51">t==11</label>
+		</transition>
+	</template>
+	<template>
+		<name>Coercer</name>
+		<declaration>// Place local declarations here.
+
+
+</declaration>
+		<location id="id19" x="0" y="0">
+		</location>
+		<location id="id20" x="229" y="0">
+			<label kind="invariant" x="219" y="17">y&lt;=0</label>
+		</location>
+		<location id="id21" x="-229" y="0">
+			<label kind="invariant" x="-239" y="17">y&lt;=0</label>
+		</location>
+		<init ref="id19"/>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id21"/>
+			<label kind="select" x="-170" y="110">ci:int[0,NC]</label>
+			<label kind="guard" x="-170" y="127">CTYPE==2 &amp;&amp;
+ci!=OBEY</label>
+			<label kind="synchronisation" x="-171" y="161">show[ci]?</label>
+			<label kind="assignment" x="-171" y="178">y=0</label>
+			<nail x="-59" y="102"/>
+			<nail x="-170" y="102"/>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id20"/>
+			<label kind="guard" x="68" y="110">CTYPE==2</label>
+			<label kind="synchronisation" x="68" y="127">show[(OBEY+NC+1)%(NC+1)+(OBEY==-1)]?</label>
+			<label kind="assignment" x="68" y="144">y=0</label>
+			<nail x="59" y="102"/>
+			<nail x="170" y="102"/>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="102" y="-25">npun!</label>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="-136" y="-25">pun!</label>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id21"/>
+			<label kind="guard" x="-170" y="-153">CTYPE==1</label>
+			<label kind="synchronisation" x="-170" y="-136">show[(DISOBEY+NC+1)%(NC+1)+(DISOBEY==-1)]?</label>
+			<label kind="assignment" x="-170" y="-119">y=0</label>
+			<nail x="-59" y="-102"/>
+			<nail x="-170" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id20"/>
+			<label kind="select" x="68" y="-187">ci:int[0,NC]</label>
+			<label kind="guard" x="68" y="-170">CTYPE==1 &amp;&amp;
+ci!=DISOBEY</label>
+			<label kind="synchronisation" x="68" y="-136">show[ci]?</label>
+			<label kind="assignment" x="68" y="-119">y=0</label>
+			<nail x="59" y="-102"/>
+			<nail x="169" y="-102"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+
+system Voter, Authority, Coercer;
+    </system>
+	<queries>
+		<query>
+			<formula>A[]forall(i:int[1,NV])(Voter(i).end imply Voter(i).np || Voter(i).p)    </formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[]1==1</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Voter(1).p &amp;&amp; Voter(1).np</formula>
+			<comment>Sanity check</comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter(1).np imply Voter(1).voted!=DISOBEY</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[]forall(i:int[1,NV])(Voter(i).np imply Voter(i).voted!=DISOBEY)</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter(1).np imply Voter(1).voted==OBEY</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt;forall(vi:int[1,NV])(Voter(vi).voted==1 &amp;&amp; t&lt;=8)</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt;Voter(1).voted==1 &amp;&amp; t&lt;=8</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[](tally[1]+tally[2])&lt;=NV</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; Voter(1).np &amp;&amp; Voter(1).voted!=OBEY</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter1(1).np imply Voter1(1).voted==-1</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter1(1).np imply Voter1(1).voted!=DISOBEY</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[](    (Voter(1).np || Voter(1).p) imply (Voter(1).voted==DISOBEY imply Voter(1).p) )</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter(1).voted==DISOBEY imply !Voter(1).np</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter(1).voted==DISOBEY imply Voter(1).p</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] Voter(1).voted==OBEY imply Voter(1).np</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[](
+    (Voter(1).np || Voter(1).p) imply 
+        (Voter(1).voted==OBEY imply Voter(1).np)
+    )</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[](
+    (Voter(1).np || Voter(1).p) imply 
+        (Voter(1).voted==DISOBEY imply Voter(1).p)
+    )</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[](
+    (Voter(1).np || Voter(1).p) imply 
+        (Voter(1).np imply Voter(1).voted!=DISOBEY)
+    )</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[]( 
+    (Voter(1).np || Voter(1).p) imply 
+(       Voter(1).voted==OBEY imply Voter(1).np)
+    )</formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
